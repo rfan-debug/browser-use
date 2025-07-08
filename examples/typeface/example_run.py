@@ -17,7 +17,7 @@ async def main():
     async with async_playwright() as p:
         try:
             # launch a Chromium *context* that persists to disk
-            context = await p.chromium.launch_persistent_context(
+            browser_context = await p.chromium.launch_persistent_context(
                 user_data_dir=str(PROFILE_DIR),
                 headless=False
             )
@@ -28,14 +28,14 @@ async def main():
                     temperature=0.2,
                     api_version="2024-12-01-preview",
                 ),
-                context=context,
+                browser_context=browser_context,
                 tool_calling_method="function_calling",
             )
             await agent.run()
         except Exception as e:
             raise e
         finally:
-            await context.close()
+            await browser_context.close()
 
 
 if __name__ == "__main__":
