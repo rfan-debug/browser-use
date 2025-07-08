@@ -32,6 +32,7 @@ async def main(task: str):
                 minimum_wait_page_load_time=2.0,
             ),
             tool_calling_method="function_calling",
+            generate_gif=True,
         )
         await agent.run()
     except Exception as e:
@@ -39,15 +40,23 @@ async def main(task: str):
 
 
 if __name__ == "__main__":
-    task_1 = """
-    Go to https://beta.typeface.ai/projects/625275/canvas/9559021?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=98bc1cb8-37ec-42a7-aae8-70f12587953b
-    Then start chatting in the text box like a professional designer, with a goal of 
-    "creating an image of with a can of soda on the beach" in a professional ads setting. 
+
+    LOCAL_TEXT = "http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=f4218945-88ed-431e-9c97-d1622514b43e"
+    ALPHA_TEXT = "https://beta.typeface.ai/?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6"
+    task_1 = f"""
+    Go to {ALPHA_TEXT}.
+    Go to `Cool project` project and create an image with `strawberry` inside.
     
-    Press Enter when each chat message is sent. 
-    You might experience multiple rounds of conversations in that box.
-    NEVER click the BUGREPORT button. 
-    NEVER try to identify anything on a loading page. You should simply wait on the Loading page. 
+    ALWAYS REMEMBER the following: 
+    Waiting on the loading page and never take actions there. 
     """
+    #     Then start chatting in the text box like a professional designer, with a goal of
+    #     "creating an image of with a can of soda on the beach" in a professional ads setting.
+    #
+    #     Press Enter when each chat message is sent.
+    #     You might experience multiple rounds of conversations in that box.
+    #     with "right-direction arrow" on it.
+    #     NEVER click the BUGREPORT button.
+    #     NEVER try to identify anything on a loading page. You should simply wait on the Loading page.
 
     asyncio.run(main(task_1))
