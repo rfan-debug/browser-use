@@ -42,10 +42,11 @@ async def main(task: str):
 if __name__ == "__main__":
 
     LOCAL_TEXT = "http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=f4218945-88ed-431e-9c97-d1622514b43e"
-    ALPHA_TEXT = "https://beta.typeface.ai/?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6"
+    BETA_TEXT = "https://beta.typeface.ai/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033"
     task_1 = f"""
-    Go to {ALPHA_TEXT}.
-    Go to `Cool project` project and create an image with `strawberry` inside.
+    Go to the url: {BETA_TEXT}.
+    
+    Add the image with lion into the canvas.
     
     ALWAYS REMEMBER the following: 
     Waiting on the loading page and never take actions there. 

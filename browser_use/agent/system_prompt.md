@@ -54,6 +54,9 @@ Interactive Elements: All interactive elements will be provided in format as [in
 - type: HTML element type (button, input, etc.)
 - text: Element description
 
+The only exception is that you're allowed to index the buttons with "right-direction arrow" on its logo, no matter if
+it is active or not.
+
 Examples:
 [33]<div>User form</div>
 \t*[35]<button aria-label='Submit form'>Submit</button>
