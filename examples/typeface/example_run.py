@@ -40,14 +40,12 @@ async def main(task: str):
 
 if __name__ == '__main__':
 	LOCAL_TEXT = 'http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
-	PREVIEW_TEXT = 'https://kind-pond-08f7fc10f-preview.eastus2.3.azurestaticapps.net/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=84118086-3d04-41f9-a45d-daf104d9bb6d'
+	PREVIEW_TEXT = 'https://kind-pond-08f7fc10f-preview.eastus2.3.azurestaticapps.net/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6'
 	BETA_TEXT = 'https://beta.typeface.ai/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
 	task_1 = f"""
-    Go to the url: {PREVIEW_TEXT}.
-    
-    In the message textbox, type in `i want an image with running rabbit`, and then click the `→` button on
-    the right of the `plugin` button.
-    
+    First, Go to the url: {PREVIEW_TEXT}.
+    Second, type in `i want to generate an image with a running horse.` in the chat textbox.
+    Third, Click the `→` button.
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
    	2. NEVER touch anything on the cavas, focus on the chat message itself.
