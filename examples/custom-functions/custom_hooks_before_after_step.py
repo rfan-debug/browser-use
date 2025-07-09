@@ -232,4 +232,5 @@ async def run_agent():
 		print(e)
 
 
-asyncio.run(run_agent())
+if __name__ == '__main__':
+	asyncio.run(run_agent())
