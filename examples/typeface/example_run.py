@@ -28,85 +28,77 @@ class ForceClickModel(BaseModel):
 	selector: str  # CSS selector for the button to force click
 
 
-# Register custom action to enable disabled buttons
+# Custom action model for diagnosing chat issues
+class DiagnoseChatModel(BaseModel):
+	pass  # No parameters needed
+
+
+# Register custom action to enable disabled buttons safely
 @controller.registry.action('Enable disabled buttons on the page to make them interactive', param_model=EnableButtonModel)
 async def enable_disabled_buttons(params: EnableButtonModel, browser_session: BrowserSession):
-	"""Enable disabled buttons by removing disabled attributes and triggering proper state changes"""
+	"""Enable disabled buttons with minimal interference to the application workflow"""
 	if params.selector:
 		script = f"""
 			const button = document.querySelector('{params.selector}');
 			if (button) {{
-				// Store original state
-				button.setAttribute('data-original-disabled', button.disabled.toString());
+				// Store original state for debugging
+				const originalState = {{
+					disabled: button.disabled,
+					ariaDisabled: button.getAttribute('aria-disabled'),
+					pointerEvents: button.style.pointerEvents,
+					opacity: button.style.opacity
+				}};
+				console.log('Original button state:', originalState);
 				
-				// Remove disabled state
+				// Minimal changes to avoid breaking React state
 				button.removeAttribute('disabled');
 				button.disabled = false;
-				button.style.cursor = 'pointer';
-				button.style.opacity = '1';
-				button.style.pointerEvents = 'auto';
+				button.removeAttribute('aria-disabled');
 				
-				// Remove disabled classes
-				button.classList.remove('disabled', 'btn-disabled', 'button-disabled');
-				
-				// Trigger events to notify React/Vue components
-				button.dispatchEvent(new Event('change', {{ bubbles: true }}));
-				button.dispatchEvent(new Event('input', {{ bubbles: true }}));
-				button.dispatchEvent(new CustomEvent('enabledByAutomation', {{ bubbles: true }}));
-				
-				// Try to find and update React component state
-				const reactKey = Object.keys(button).find(key => key.startsWith('__reactInternalInstance') || key.startsWith('__reactFiber'));
-				if (reactKey && button[reactKey]) {{
-					try {{
-						const fiber = button[reactKey];
-						if (fiber.memoizedProps) {{
-							fiber.memoizedProps.disabled = false;
-						}}
-					}} catch (e) {{
-						console.log('Could not update React props:', e);
-					}}
+				// Only modify style if it's explicitly blocking interaction
+				if (button.style.pointerEvents === 'none') {{
+					button.style.pointerEvents = 'auto';
 				}}
+				
+				console.log('Button enabled successfully');
+				return 'enabled';
+			}} else {{
+				console.log('Button not found with selector: {params.selector}');
+				return 'not_found';
 			}}
 		"""
 	else:
 		script = """
+			let enabledCount = 0;
 			document.querySelectorAll('button[disabled], input[disabled], button[aria-disabled="true"], input[aria-disabled="true"]').forEach(element => {
-				// Store original state
-				element.setAttribute('data-original-disabled', element.disabled.toString());
+				// Store original state for debugging
+				const originalState = {
+					disabled: element.disabled,
+					ariaDisabled: element.getAttribute('aria-disabled'),
+					pointerEvents: element.style.pointerEvents,
+					opacity: element.style.opacity
+				};
+				console.log('Original element state:', originalState);
 				
-				// Remove disabled state
+				// Minimal changes to avoid breaking React state
 				element.removeAttribute('disabled');
-				element.removeAttribute('aria-disabled');
 				element.disabled = false;
-				element.style.cursor = 'pointer';
-				element.style.opacity = '1';
-				element.style.pointerEvents = 'auto';
+				element.removeAttribute('aria-disabled');
 				
-				// Remove disabled classes
-				element.classList.remove('disabled', 'btn-disabled', 'button-disabled');
-				
-				// Trigger events to notify React/Vue components
-				element.dispatchEvent(new Event('change', { bubbles: true }));
-				element.dispatchEvent(new Event('input', { bubbles: true }));
-				element.dispatchEvent(new CustomEvent('enabledByAutomation', { bubbles: true }));
-				
-				// Try to find and update React component state
-				const reactKey = Object.keys(element).find(key => key.startsWith('__reactInternalInstance') || key.startsWith('__reactFiber'));
-				if (reactKey && element[reactKey]) {
-					try {
-						const fiber = element[reactKey];
-						if (fiber.memoizedProps) {
-							fiber.memoizedProps.disabled = false;
-						}
-					} catch (e) {
-						console.log('Could not update React props:', e);
-					}
+				// Only modify style if it's explicitly blocking interaction
+				if (element.style.pointerEvents === 'none') {
+					element.style.pointerEvents = 'auto';
 				}
+				
+				enabledCount++;
 			});
+			
+			console.log(`Enabled ${enabledCount} buttons`);
+			return `enabled_${enabledCount}`;
 		"""
 
-	await browser_session.execute_javascript(script)
-	return ActionResult(extracted_content='Successfully enabled disabled buttons and triggered state changes')
+	result = await browser_session.execute_javascript(script)
+	return ActionResult(extracted_content=f'Button enabling completed: {result}')
 
 
 # Register custom action to force click buttons that may be disabled
@@ -162,6 +154,116 @@ async def force_click_button(params: ForceClickModel, browser_session: BrowserSe
 	return ActionResult(extracted_content=f'Force click attempt completed: {result}')
 
 
+# Register diagnostic action to understand chat workflow issues
+@controller.registry.action(
+	'Diagnose chat workflow issues and identify what is preventing message sending', param_model=DiagnoseChatModel
+)
+async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: BrowserSession):
+	"""Diagnose potential issues with the chat workflow"""
+	script = """
+		// Comprehensive diagnostic of chat elements
+		const diagnosis = {
+			timestamp: new Date().toISOString(),
+			url: window.location.href,
+			errors: [],
+			elements: {},
+			validation: {},
+			eventListeners: {}
+		};
+		
+		try {
+			// Look for chat input elements
+			const chatInputs = document.querySelectorAll('input[type="text"], textarea, [contenteditable="true"]');
+			diagnosis.elements.chatInputs = Array.from(chatInputs).map(input => ({
+				tagName: input.tagName,
+				type: input.type,
+				disabled: input.disabled,
+				value: input.value,
+				placeholder: input.placeholder,
+				id: input.id,
+				className: input.className,
+				styles: {
+					display: getComputedStyle(input).display,
+					visibility: getComputedStyle(input).visibility,
+					pointerEvents: getComputedStyle(input).pointerEvents
+				}
+			}));
+			
+			// Look for send buttons
+			const sendButtons = document.querySelectorAll('button, input[type="submit"], [role="button"]');
+			diagnosis.elements.sendButtons = Array.from(sendButtons).map(button => ({
+				tagName: button.tagName,
+				type: button.type,
+				disabled: button.disabled,
+				textContent: button.textContent?.trim(),
+				innerHTML: button.innerHTML,
+				id: button.id,
+				className: button.className,
+				ariaLabel: button.getAttribute('aria-label'),
+				styles: {
+					display: getComputedStyle(button).display,
+					visibility: getComputedStyle(button).visibility,
+					pointerEvents: getComputedStyle(button).pointerEvents,
+					cursor: getComputedStyle(button).cursor
+				}
+			}));
+			
+			// Check for form elements
+			const forms = document.querySelectorAll('form');
+			diagnosis.elements.forms = Array.from(forms).map(form => ({
+				action: form.action,
+				method: form.method,
+				id: form.id,
+				className: form.className,
+				elements: form.elements.length
+			}));
+			
+			// Check for JavaScript errors
+			const originalError = window.onerror;
+			const errors = [];
+			window.onerror = function(msg, url, line, col, error) {
+				errors.push({ msg, url, line, col, error: error?.toString() });
+				if (originalError) originalError.apply(this, arguments);
+			};
+			
+			// Look for React/Vue roots
+			const reactRoots = document.querySelectorAll('[data-reactroot], [data-react-root]');
+			diagnosis.elements.reactRoots = reactRoots.length;
+			
+			// Check for validation messages
+			const validationMessages = document.querySelectorAll('[role="alert"], .error, .validation-error, .invalid-feedback');
+			diagnosis.validation.messages = Array.from(validationMessages).map(msg => ({
+				textContent: msg.textContent?.trim(),
+				className: msg.className,
+				visible: getComputedStyle(msg).display !== 'none'
+			}));
+			
+			// Check console errors
+			const consoleErrors = [];
+			const originalConsoleError = console.error;
+			console.error = function(...args) {
+				consoleErrors.push(args.join(' '));
+				originalConsoleError.apply(console, arguments);
+			};
+			
+			diagnosis.validation.consoleErrors = consoleErrors;
+			
+			return JSON.stringify(diagnosis, null, 2);
+			
+		} catch (error) {
+			diagnosis.errors.push({
+				type: 'diagnostic_error',
+				message: error.message,
+				stack: error.stack
+			});
+			return JSON.stringify(diagnosis, null, 2);
+		}
+	"""
+
+	result = await browser_session.execute_javascript(script)
+	return ActionResult(extracted_content=f'Chat workflow diagnosis:\n{result}')
+
+
 def six_digit_hash(input_str: str) -> str:
 	digest = hashlib.sha256(input_str.encode('utf-8')).hexdigest()
 	digest_int = int(digest, 16)
@@ -199,29 +301,19 @@ async def main(task: str):
 if __name__ == '__main__':
 	LOCAL_TEXT = 'http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
 	PREVIEW_TEXT = 'https://kind-pond-08f7fc10f-preview.eastus2.3.azurestaticapps.net/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6'
-	BETA_TEXT = 'https://beta.typeface.ai/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=0215b5b6-460c-4ff1-8c44-4959213a1e75'
+	BETA_TEXT = 'https://beta.typeface.ai/canvas/674657?accountId=5802277a-d2a5-4f21-b927-d577577c3a17&chatId=1b47a9b7-d68e-4764-8b91-45d17b726fcd'
 	BETA_TEXT2 = 'https://beta.typeface.ai'
 
 	task_1 = f"""
     First, Go to the url: {BETA_TEXT}.
-    Second, if you encounter any disabled buttons that prevent interaction, use the "Enable disabled buttons on the page to make them interactive" action to enable them.
-    Third, type in `create an image with a running rabbit` in the chat box on the left-bottom side.
-    Fourth, enable disabled buttons on the page to make them interactive
+    Second, use the "Diagnose chat workflow issues and identify what is preventing message sending" action to understand the current state of the chat interface.
+    Third, type in `create a sizzle video` in the left bottom "Ask anything" input box.
+    Fourth, if you encounter any disabled buttons that prevent interaction, use the "Enable disabled buttons on the page to make them interactive" action to enable them.
     Finally, press the `right-arrowed` button to send it to the chat. If normal clicking doesn't work, use the "Force click a button even if it appears disabled" action with the appropriate CSS selector.
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
    	2. NEVER touch anything on the canvas, focus on the chat message itself.
-    3. If buttons appear disabled or un-clickable, try these actions in order:
-       a) First use "Enable disabled buttons on the page to make them interactive"
-       b) If that doesn't work, use "Force click a button even if it appears disabled" with the button's CSS selector
+    3. Use the diagnostic action whenever something isn't working as expected to understand why.
     """
-	#     Then start chatting in the text box like a professional designer, with a goal of
-	#     "creating an image of with a can of soda on the beach" in a professional ads setting.
-	#
-	#     Press Enter when each chat message is sent.
-	#     You might experience multiple rounds of conversations in that box.
-	#     with "right-direction arrow" on it.
-	#     NEVER click the BUGREPORT button.
-	#     NEVER try to identify anything on a loading page. You should simply wait on the Loading page.
 
 	asyncio.run(main(task_1))
