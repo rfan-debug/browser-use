@@ -2,15 +2,163 @@ import asyncio
 from pathlib import Path
 
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
 from browser_use.browser import BrowserProfile
 from browser_use.llm.azure.chat import ChatAzureOpenAI
 
 load_dotenv()
-from browser_use import Agent
+from browser_use import ActionResult, Agent, BrowserSession, Controller
 
 PROFILE_DIR = Path.home() / '.cache' / 'my_playwright_profile'
 PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Create controller for custom actions
+controller = Controller()
+
+
+# Custom action model for enabling disabled buttons
+class EnableButtonModel(BaseModel):
+	selector: str | None = None  # CSS selector, if None enables all disabled buttons
+
+
+# Custom action model for force clicking buttons
+class ForceClickModel(BaseModel):
+	selector: str  # CSS selector for the button to force click
+
+
+# Register custom action to enable disabled buttons
+@controller.registry.action('Enable disabled buttons on the page to make them interactive', param_model=EnableButtonModel)
+async def enable_disabled_buttons(params: EnableButtonModel, browser_session: BrowserSession):
+	"""Enable disabled buttons by removing disabled attributes and triggering proper state changes"""
+	if params.selector:
+		script = f"""
+			const button = document.querySelector('{params.selector}');
+			if (button) {{
+				// Store original state
+				button.setAttribute('data-original-disabled', button.disabled.toString());
+				
+				// Remove disabled state
+				button.removeAttribute('disabled');
+				button.disabled = false;
+				button.style.cursor = 'pointer';
+				button.style.opacity = '1';
+				button.style.pointerEvents = 'auto';
+				
+				// Remove disabled classes
+				button.classList.remove('disabled', 'btn-disabled', 'button-disabled');
+				
+				// Trigger events to notify React/Vue components
+				button.dispatchEvent(new Event('change', {{ bubbles: true }}));
+				button.dispatchEvent(new Event('input', {{ bubbles: true }}));
+				button.dispatchEvent(new CustomEvent('enabledByAutomation', {{ bubbles: true }}));
+				
+				// Try to find and update React component state
+				const reactKey = Object.keys(button).find(key => key.startsWith('__reactInternalInstance') || key.startsWith('__reactFiber'));
+				if (reactKey && button[reactKey]) {{
+					try {{
+						const fiber = button[reactKey];
+						if (fiber.memoizedProps) {{
+							fiber.memoizedProps.disabled = false;
+						}}
+					}} catch (e) {{
+						console.log('Could not update React props:', e);
+					}}
+				}}
+			}}
+		"""
+	else:
+		script = """
+			document.querySelectorAll('button[disabled], input[disabled], button[aria-disabled="true"], input[aria-disabled="true"]').forEach(element => {
+				// Store original state
+				element.setAttribute('data-original-disabled', element.disabled.toString());
+				
+				// Remove disabled state
+				element.removeAttribute('disabled');
+				element.removeAttribute('aria-disabled');
+				element.disabled = false;
+				element.style.cursor = 'pointer';
+				element.style.opacity = '1';
+				element.style.pointerEvents = 'auto';
+				
+				// Remove disabled classes
+				element.classList.remove('disabled', 'btn-disabled', 'button-disabled');
+				
+				// Trigger events to notify React/Vue components
+				element.dispatchEvent(new Event('change', { bubbles: true }));
+				element.dispatchEvent(new Event('input', { bubbles: true }));
+				element.dispatchEvent(new CustomEvent('enabledByAutomation', { bubbles: true }));
+				
+				// Try to find and update React component state
+				const reactKey = Object.keys(element).find(key => key.startsWith('__reactInternalInstance') || key.startsWith('__reactFiber'));
+				if (reactKey && element[reactKey]) {
+					try {
+						const fiber = element[reactKey];
+						if (fiber.memoizedProps) {
+							fiber.memoizedProps.disabled = false;
+						}
+					} catch (e) {
+						console.log('Could not update React props:', e);
+					}
+				}
+			});
+		"""
+
+	await browser_session.execute_javascript(script)
+	return ActionResult(extracted_content='Successfully enabled disabled buttons and triggered state changes')
+
+
+# Register custom action to force click buttons that may be disabled
+@controller.registry.action('Force click a button even if it appears disabled', param_model=ForceClickModel)
+async def force_click_button(params: ForceClickModel, browser_session: BrowserSession):
+	"""Force click a button by bypassing normal disabled state checks"""
+	script = f"""
+		const button = document.querySelector('{params.selector}');
+		if (button) {{
+			// Store original state
+			const originalDisabled = button.disabled;
+			const originalPointerEvents = button.style.pointerEvents;
+			
+			// Temporarily enable the button
+			button.disabled = false;
+			button.style.pointerEvents = 'auto';
+			
+			// Try multiple click methods
+			try {{
+				// Method 1: Direct click
+				button.click();
+				
+				// Method 2: Dispatch mouse events
+				button.dispatchEvent(new MouseEvent('mousedown', {{ bubbles: true, cancelable: true }}));
+				button.dispatchEvent(new MouseEvent('mouseup', {{ bubbles: true, cancelable: true }}));
+				button.dispatchEvent(new MouseEvent('click', {{ bubbles: true, cancelable: true }}));
+				
+				// Method 3: Dispatch touch events for mobile
+				button.dispatchEvent(new TouchEvent('touchstart', {{ bubbles: true, cancelable: true }}));
+				button.dispatchEvent(new TouchEvent('touchend', {{ bubbles: true, cancelable: true }}));
+				
+				// Method 4: Focus and trigger Enter key
+				button.focus();
+				button.dispatchEvent(new KeyboardEvent('keydown', {{ key: 'Enter', bubbles: true }}));
+				button.dispatchEvent(new KeyboardEvent('keyup', {{ key: 'Enter', bubbles: true }}));
+				
+				console.log('Force clicked button:', button);
+				return 'success';
+			}} catch (e) {{
+				console.error('Error force clicking button:', e);
+				return 'error: ' + e.message;
+			}} finally {{
+				// Restore original state
+				button.disabled = originalDisabled;
+				button.style.pointerEvents = originalPointerEvents;
+			}}
+		}} else {{
+			return 'error: button not found';
+		}}
+	"""
+
+	result = await browser_session.execute_javascript(script)
+	return ActionResult(extracted_content=f'Force click attempt completed: {result}')
 
 
 async def main(task: str):
@@ -32,6 +180,7 @@ async def main(task: str):
 			),
 			tool_calling_method='function_calling',
 			generate_gif=True,
+			controller=controller,  # Use our custom controller with the enable buttons action
 		)
 		await agent.run()
 	except Exception as e:
@@ -46,11 +195,16 @@ if __name__ == '__main__':
 
 	task_1 = f"""
     First, Go to the url: {BETA_TEXT}.
-    Second, type in `create an image with a running rabbit` in the chat box on the left-bottom side.
-    Third, press the `right-arrowed` button to send it to the chat.
+    Second, if you encounter any disabled buttons that prevent interaction, use the "Enable disabled buttons on the page to make them interactive" action to enable them.
+    Third, type in `create an image with a running rabbit` in the chat box on the left-bottom side.
+    Fourth, enable disabled buttons on the page to make them interactive
+    Finally, press the `right-arrowed` button to send it to the chat. If normal clicking doesn't work, use the "Force click a button even if it appears disabled" action with the appropriate CSS selector.
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
-   	2. NEVER touch anything on the cavas, focus on the chat message itself.
+   	2. NEVER touch anything on the canvas, focus on the chat message itself.
+    3. If buttons appear disabled or un-clickable, try these actions in order:
+       a) First use "Enable disabled buttons on the page to make them interactive"
+       b) If that doesn't work, use "Force click a button even if it appears disabled" with the button's CSS selector
     """
 	#     Then start chatting in the text box like a professional designer, with a goal of
 	#     "creating an image of with a can of soda on the beach" in a professional ads setting.
