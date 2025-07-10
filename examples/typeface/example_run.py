@@ -42,10 +42,12 @@ if __name__ == '__main__':
 	LOCAL_TEXT = 'http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
 	PREVIEW_TEXT = 'https://kind-pond-08f7fc10f-preview.eastus2.3.azurestaticapps.net/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6'
 	BETA_TEXT = 'https://beta.typeface.ai/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
+	BETA_TEXT2 = 'https://beta.typeface.ai'
+
 	task_1 = f"""
-    First, Go to the url: {PREVIEW_TEXT}.
-    Second, type in `i want to generate an image with a running horse.` in the chat textbox.
-    Third, Click the `→` button.
+    First, Go to the url: {BETA_TEXT2}.
+    Go to the project page, choose the `Browser AI test project`.
+    Create an empty document there
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
    	2. NEVER touch anything on the cavas, focus on the chat message itself.
