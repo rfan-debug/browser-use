@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -161,8 +162,16 @@ async def force_click_button(params: ForceClickModel, browser_session: BrowserSe
 	return ActionResult(extracted_content=f'Force click attempt completed: {result}')
 
 
+def six_digit_hash(input_str: str) -> str:
+	digest = hashlib.sha256(input_str.encode('utf-8')).hexdigest()
+	digest_int = int(digest, 16)
+	hash_val = digest_int % (10**6)
+	return f'{hash_val:06d}'
+
+
 async def main(task: str):
 	try:
+		hash_str = six_digit_hash(task)
 		# launch a Chromium *context* that persists to disk
 		agent = Agent(
 			task=task,
@@ -174,12 +183,12 @@ async def main(task: str):
 			browser_profile=BrowserProfile(
 				user_data_dir=str(PROFILE_DIR),
 				headless=False,
-				window_size={'width': 999, 'height': 888},
+				window_size={'width': 1024, 'height': 888},
 				maximum_wait_page_load_time=20.0,
 				minimum_wait_page_load_time=2.0,
 			),
 			tool_calling_method='function_calling',
-			generate_gif=True,
+			generate_gif=f'agent_history_{hash_str}.gif',
 			controller=controller,  # Use our custom controller with the enable buttons action
 		)
 		await agent.run()
