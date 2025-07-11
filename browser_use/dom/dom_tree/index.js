@@ -556,11 +556,6 @@
     const tagName = element.tagName.toLowerCase();
     const style = getCachedComputedStyle(element);
 
-    // Always mark button elements as interactive
-    if (tagName === 'button') {
-      return true;
-    }
-
     // Define interactive cursors
     const interactiveCursors = new Set([
       'pointer',    // Link/clickable elements
