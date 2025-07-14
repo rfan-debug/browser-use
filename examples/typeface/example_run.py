@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -274,6 +275,7 @@ def six_digit_hash(input_str: str) -> str:
 async def main(task: str):
 	try:
 		hash_str = six_digit_hash(task)
+		dt_now = datetime.now()
 		# launch a Chromium *context* that persists to disk
 		agent = Agent(
 			task=task,
@@ -290,7 +292,7 @@ async def main(task: str):
 				minimum_wait_page_load_time=2.0,
 			),
 			tool_calling_method='function_calling',
-			generate_gif=f'agent_history_{hash_str}.gif',
+			generate_gif=f'agent_history_{dt_now}_{hash_str}.gif',
 			controller=controller,  # Use our custom controller with the enable buttons action
 		)
 		await agent.run()
