@@ -113,16 +113,16 @@ def create_history_gif(
 			logger.warning(f'Could not load logo: {e}')
 
 	# Create task frame if requested
-	if show_task and task:
-		task_frame = _create_task_frame(
-			task,
-			history.history[0].state.screenshot,
-			title_font,  # type: ignore
-			regular_font,  # type: ignore
-			logo,
-			line_spacing,
-		)
-		images.append(task_frame)
+	# if show_task and task:
+	# 	task_frame = _create_task_frame(
+	# 		task,
+	# 		history.history[0].state.screenshot,
+	# 		title_font,  # type: ignore
+	# 		regular_font,  # type: ignore
+	# 		logo,
+	# 		line_spacing,
+	# 	)
+	# 	images.append(task_frame)
 
 	# Process each history item
 	for i, item in enumerate(history.history, 1):
@@ -143,8 +143,8 @@ def create_history_gif(
 				margin=margin,
 				logo=logo,
 			)
-
-		images.append(image)
+		if i > 1:
+			images.append(image)
 
 	if images:
 		# Save the GIF
