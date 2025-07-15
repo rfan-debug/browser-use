@@ -275,7 +275,7 @@ def six_digit_hash(input_str: str) -> str:
 async def main(task: str):
 	try:
 		hash_str = six_digit_hash(task)
-		dt_now = datetime.now()
+		dt_now = datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
 		# launch a Chromium *context* that persists to disk
 		agent = Agent(
 			task=task,
