@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Optional
 
 from browser_use.llm.messages import ContentPartImageParam, ContentPartTextParam, ImageURL, SystemMessage, UserMessage
 from browser_use.observability import observe_debug
+from browser_use.utils import is_new_tab_page
 
 if TYPE_CHECKING:
 	from browser_use.agent.views import AgentStepInfo
@@ -19,10 +20,12 @@ class SystemPrompt:
 		override_system_message: str | None = None,
 		extend_system_message: str | None = None,
 		use_thinking: bool = True,
+		flash_mode: bool = False,
 	):
 		self.default_action_description = action_description
 		self.max_actions_per_step = max_actions_per_step
 		self.use_thinking = use_thinking
+		self.flash_mode = flash_mode
 		prompt = ''
 		if override_system_message:
 			prompt = override_system_message
@@ -38,8 +41,13 @@ class SystemPrompt:
 	def _load_prompt_template(self) -> None:
 		"""Load the prompt template from the markdown file."""
 		try:
-			# Choose the appropriate template based on use_thinking setting
-			template_filename = 'system_prompt.md' if self.use_thinking else 'system_prompt_no_thinking.md'
+			# Choose the appropriate template based on flash_mode and use_thinking settings
+			if self.flash_mode:
+				template_filename = 'system_prompt_flash.md'
+			elif self.use_thinking:
+				template_filename = 'system_prompt.md'
+			else:
+				template_filename = 'system_prompt_no_thinking.md'
 
 			# This works both in development and when installed as a package
 			with importlib.resources.files('browser_use.agent').joinpath(template_filename).open('r', encoding='utf-8') as f:
@@ -96,7 +104,7 @@ class AgentMessagePrompt:
 		self.screenshots = screenshots or []
 		assert self.browser_state
 
-	@observe_debug(name='_deduplicate_screenshots')
+	@observe_debug(ignore_input=True, ignore_output=True, name='_deduplicate_screenshots')
 	def _deduplicate_screenshots(self, screenshots: list[str]) -> list[str]:
 		"""
 		Remove consecutive duplicate screenshots, keeping only the most recent of each.
@@ -126,7 +134,7 @@ class AgentMessagePrompt:
 
 		return unique_screenshots
 
-	@observe_debug(name='_get_browser_state_description')
+	@observe_debug(ignore_input=True, ignore_output=True, name='_get_browser_state_description')
 	def _get_browser_state_description(self) -> str:
 		elements_text = self.browser_state.element_tree.clickable_elements_to_string(include_attributes=self.include_attributes)
 
@@ -229,11 +237,11 @@ Interactive elements from top layer of the current page inside the viewport{trun
 			agent_state += '<available_file_paths>\n' + '\n'.join(self.available_file_paths) + '\n</available_file_paths>\n'
 		return agent_state
 
-	@observe_debug(name='get_user_message')
+	@observe_debug(ignore_input=True, ignore_output=True, name='get_user_message')
 	def get_user_message(self, use_vision: bool = True) -> UserMessage:
-		# Don't pass screenshot to model if page is about:blank, step is 0, and there's only one tab
+		# Don't pass screenshot to model if page is a new tab page, step is 0, and there's only one tab
 		if (
-			self.browser_state.url == 'about:blank'
+			is_new_tab_page(self.browser_state.url)
 			and self.step_info is not None
 			and self.step_info.step_number == 0
 			and len(self.browser_state.tabs) == 1
@@ -287,53 +295,3 @@ Interactive elements from top layer of the current page inside the viewport{trun
 			return UserMessage(content=content_parts)
 
 		return UserMessage(content=state_description)
-
-
-class PlannerPrompt:
-	def __init__(self, available_actions: str):
-		self.available_actions = available_actions
-
-	def get_system_message(
-		self, is_planner_reasoning: bool, extended_planner_system_prompt: str | None = None
-	) -> SystemMessage | UserMessage:
-		"""Get the system message for the planner.
-
-		Args:
-		    is_planner_reasoning: If True, return as HumanMessage for chain-of-thought
-		    extended_planner_system_prompt: Optional text to append to the base prompt
-
-		Returns:
-		    SystemMessage or HumanMessage depending on is_planner_reasoning
-		"""
-
-		planner_prompt_text = """
-You are a planning agent that helps break down tasks into smaller steps and reason about the current state.
-Your role is to:
-1. Analyze the current state and history
-2. Evaluate progress towards the ultimate goal
-3. Identify potential challenges or roadblocks
-4. Suggest the next high-level steps to take
-
-Inside your messages, there will be AI messages from different agents with different formats.
-
-Your output format should be always a JSON object with the following fields:
-{{
-    "state_analysis": "Brief analysis of the current state and what has been done so far",
-    "progress_evaluation": "Evaluation of progress towards the ultimate goal (as percentage and description)",
-    "challenges": "List any potential challenges or roadblocks",
-    "next_steps": "List 2-3 concrete next steps to take",
-    "reasoning": "Explain your reasoning for the suggested next steps"
-}}
-
-Ignore the other AI messages output structures.
-
-Keep your responses concise and focused on actionable insights.
-"""
-
-		if extended_planner_system_prompt:
-			planner_prompt_text += f'\n{extended_planner_system_prompt}'
-
-		if is_planner_reasoning:
-			return UserMessage(content=planner_prompt_text)
-		else:
-			return SystemMessage(content=planner_prompt_text)
