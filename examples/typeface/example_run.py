@@ -308,8 +308,11 @@ if __name__ == '__main__':
 
 	task_1 = f"""
     First, Go to the url: {BETA_TEXT}.
-    Second, click the "Ask anything" input box to gain the editing access of this box and immediately type in `create a sizzle video` in the left bottom "Ask anything" input box.
-    Finally, press the `right-arrowed` button to send it to the chat. If normal clicking doesn't work, use the "Force click a button even if it appears disabled" action with the appropriate CSS selector.
+    Second, click the "Ask anything" input box to gain the editing access of this box and immediately type in 
+    `create a sizzle video` in the left bottom "Ask anything" input box.
+    Finally, press the `right-arrowed` button to send it to the chat.
+    
+    ---
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
    	2. NEVER touch anything on the canvas, focus on the chat message itself.

@@ -3997,6 +3997,70 @@ class BrowserSession(BaseModel):
 			)
 			return None
 
+	async def _input_text_slate_editor(self, element_handle, text: str):
+		"""
+		Specialized input method for Slate.js editors.
+		Slate.js uses complex event dispatching and virtual DOM structures that require
+		specific handling to properly insert text.
+		"""
+		try:
+			# First, focus the editor
+			await element_handle.click()
+			await asyncio.sleep(0.1)
+
+			# Clear existing content using Slate-friendly approach
+			await element_handle.evaluate("""
+				el => {
+					// Try to find the actual editable element if this is a wrapper
+					const editableEl = el.hasAttribute('contenteditable') ? el : el.querySelector('[contenteditable="true"]');
+					if (editableEl) {
+						// Clear content
+						editableEl.textContent = '';
+						editableEl.innerHTML = '';
+						
+						// Focus and select all for clean state
+						editableEl.focus();
+						const range = document.createRange();
+						range.selectNodeContents(editableEl);
+						const selection = window.getSelection();
+						selection.removeAllRanges();
+						selection.addRange(range);
+						
+						// Trigger input events that Slate.js listens for
+						editableEl.dispatchEvent(new Event('focus', { bubbles: true }));
+						editableEl.dispatchEvent(new Event('beforeinput', { bubbles: true }));
+						editableEl.dispatchEvent(new Event('input', { bubbles: true }));
+					}
+				}
+			""")
+
+			await asyncio.sleep(0.1)
+
+			# Use keyboard input with proper event simulation
+			page = await self.get_current_page()
+
+			# Type text character by character to ensure proper event handling
+			for char in text:
+				await page.keyboard.type(char, delay=10)
+
+			# Trigger final events
+			await element_handle.evaluate("""
+				el => {
+					const editableEl = el.hasAttribute('contenteditable') ? el : el.querySelector('[contenteditable="true"]');
+					if (editableEl) {
+						editableEl.dispatchEvent(new Event('input', { bubbles: true }));
+						editableEl.dispatchEvent(new Event('change', { bubbles: true }));
+						editableEl.dispatchEvent(new Event('blur', { bubbles: true }));
+					}
+				}
+			""")
+
+			self.logger.debug(f'Successfully input text into Slate.js editor: {text[:50]}...')
+
+		except Exception as e:
+			self.logger.debug(f'Slate.js input method failed: {e}')
+			raise
+
 	@require_healthy_browser(usable_page=True, reopen_page=True)
 	@time_execution_async('--input_text_element_node')
 	async def _input_text_element_node(self, element_node: DOMElementNode, text: str):
@@ -4017,6 +4081,28 @@ class BrowserSession(BaseModel):
 				if is_visible:
 					await element_handle.scroll_into_view_if_needed(timeout=1_000)
 			except Exception:
+				pass
+
+			# Check if this is a Slate.js editor first
+			try:
+				is_slate_editor = await element_handle.evaluate("""
+					el => {
+						// Check for Slate.js indicators
+						return el.hasAttribute('data-slate-string') || 
+							   el.hasAttribute('data-slate-node') ||
+							   el.querySelector('[data-slate-string]') !== null ||
+							   el.closest('[data-slate-editor]') !== null ||
+							   (el.getAttribute('contenteditable') === 'true' && 
+							    (el.getAttribute('role') === 'textbox' || el.hasAttribute('data-slate-string')));
+					}
+				""")
+
+				if is_slate_editor:
+					self.logger.debug('Detected Slate.js editor, using specialized input method')
+					await self._input_text_slate_editor(element_handle, text)
+					return
+			except Exception as e:
+				self.logger.debug(f'Slate.js detection failed: {e}')
 				pass
 
 			# let's first try to click and type
