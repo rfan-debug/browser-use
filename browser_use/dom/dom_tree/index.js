@@ -655,6 +655,11 @@
 
     // handle inputs, select, checkbox, radio, textarea, button and make sure they are not cursor style disabled/not-allowed
     if (interactiveElements.has(tagName)) {
+      // MODIFIED: Always return true for buttons to make them clickable even when disabled/grayed-out
+      if (tagName === 'button') {
+        return true;
+      }
+
       // Check for non-interactive cursor
       if (style?.cursor && nonInteractiveCursors.has(style.cursor)) {
         return false;
@@ -733,6 +738,11 @@
       interactiveElements.has(tagName) ||
       (role && interactiveRoles.has(role)) ||
       (ariaRole && interactiveRoles.has(ariaRole));
+
+    // MODIFIED: Always return true for elements with role="button" to make them clickable even when disabled/grayed-out
+    if (role === 'button' || ariaRole === 'button') {
+      return true;
+    }
 
     if (hasInteractiveRole) return true;
 
