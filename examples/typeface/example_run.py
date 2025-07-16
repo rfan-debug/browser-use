@@ -310,3 +310,5 @@ if __name__ == '__main__':
 	for i, hist in enumerate(agent_history_list[1]):
 		with open(f'agent_history_{i}.json', 'w') as f:
 			json.dump(hist.model_dump(), f, indent=4)
+
+	print('Final result: ', agent_history_list[1][-1].results[0].success)
