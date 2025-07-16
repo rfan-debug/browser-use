@@ -316,4 +316,4 @@ if __name__ == '__main__':
 		with open(f'{agent_history_path}/history_{i}.json', 'w') as f:
 			json.dump(hist.model_dump(), f, indent=4)
 
-	print('Final result: ', agent_history_list[1][-1].result[0].success)
+	print('Is the final generation successful?::: ', agent_history_list[1][-1].result[0].success)

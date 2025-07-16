@@ -24,10 +24,12 @@ task_cases = {
     3. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `create a video of dancing penguins` in the left bottom "Ask anything" input box.
     4. Press the `right-arrowed` button to send it to the chat.
     5. Wait for 10 seconds.
-    6. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `proceed`,  
-    7. Click the input text box to gain focus, and then press the `right-arrowed` button to send it to the chat.
-    8. Wait for 60 seconds until the video generation process is done.
-    9. If a video content, or even a placeholder, is generated as we expected, mark it as SUCCESS, otherwise, mark it as FAILED. 
+    6. Refresh the page.
+    7. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `proceed`,  
+    8. Click the input text box to gain focus, and then press the `right-arrowed` button to send it to the chat.
+    9. Wait for 60 seconds.
+    10. Refresh the page.
+    11. If a video content is generated, or being generated, or even a placeholder, is generated as we expected, mark it as SUCCESS, otherwise, mark it as FAILED. 
     ---
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
