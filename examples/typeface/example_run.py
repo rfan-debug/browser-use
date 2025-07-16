@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from browser_use.browser import BrowserProfile
 from browser_use.llm.azure.chat import ChatAzureOpenAI
-from examples.typeface.example_tasks import task_cases
 
 load_dotenv()
 from browser_use import ActionResult, Agent, BrowserSession, Controller
@@ -51,17 +50,17 @@ async def enable_disabled_buttons(params: EnableButtonModel, browser_session: Br
 					opacity: button.style.opacity
 				}};
 				console.log('Original button state:', originalState);
-				
+
 				// Minimal changes to avoid breaking React state
 				button.removeAttribute('disabled');
 				button.disabled = false;
 				button.removeAttribute('aria-disabled');
-				
+
 				// Only modify style if it's explicitly blocking interaction
 				if (button.style.pointerEvents === 'none') {{
 					button.style.pointerEvents = 'auto';
 				}}
-				
+
 				console.log('Button enabled successfully');
 				return 'enabled';
 			}} else {{
@@ -81,20 +80,20 @@ async def enable_disabled_buttons(params: EnableButtonModel, browser_session: Br
 					opacity: element.style.opacity
 				};
 				console.log('Original element state:', originalState);
-				
+
 				// Minimal changes to avoid breaking React state
 				element.removeAttribute('disabled');
 				element.disabled = false;
 				element.removeAttribute('aria-disabled');
-				
+
 				// Only modify style if it's explicitly blocking interaction
 				if (element.style.pointerEvents === 'none') {
 					element.style.pointerEvents = 'auto';
 				}
-				
+
 				enabledCount++;
 			});
-			
+
 			console.log(`Enabled ${enabledCount} buttons`);
 			return `enabled_${enabledCount}`;
 		"""
@@ -113,30 +112,30 @@ async def force_click_button(params: ForceClickModel, browser_session: BrowserSe
 			// Store original state
 			const originalDisabled = button.disabled;
 			const originalPointerEvents = button.style.pointerEvents;
-			
+
 			// Temporarily enable the button
 			button.disabled = false;
 			button.style.pointerEvents = 'auto';
-			
+
 			// Try multiple click methods
 			try {{
 				// Method 1: Direct click
 				button.click();
-				
+
 				// Method 2: Dispatch mouse events
 				button.dispatchEvent(new MouseEvent('mousedown', {{ bubbles: true, cancelable: true }}));
 				button.dispatchEvent(new MouseEvent('mouseup', {{ bubbles: true, cancelable: true }}));
 				button.dispatchEvent(new MouseEvent('click', {{ bubbles: true, cancelable: true }}));
-				
+
 				// Method 3: Dispatch touch events for mobile
 				button.dispatchEvent(new TouchEvent('touchstart', {{ bubbles: true, cancelable: true }}));
 				button.dispatchEvent(new TouchEvent('touchend', {{ bubbles: true, cancelable: true }}));
-				
+
 				// Method 4: Focus and trigger Enter key
 				button.focus();
 				button.dispatchEvent(new KeyboardEvent('keydown', {{ key: 'Enter', bubbles: true }}));
 				button.dispatchEvent(new KeyboardEvent('keyup', {{ key: 'Enter', bubbles: true }}));
-				
+
 				console.log('Force clicked button:', button);
 				return 'success';
 			}} catch (e) {{
@@ -172,7 +171,7 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 			validation: {},
 			eventListeners: {}
 		};
-		
+
 		try {
 			// Look for chat input elements
 			const chatInputs = document.querySelectorAll('input[type="text"], textarea, [contenteditable="true"]');
@@ -190,7 +189,7 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 					pointerEvents: getComputedStyle(input).pointerEvents
 				}
 			}));
-			
+
 			// Look for send buttons
 			const sendButtons = document.querySelectorAll('button, input[type="submit"], [role="button"]');
 			diagnosis.elements.sendButtons = Array.from(sendButtons).map(button => ({
@@ -209,7 +208,7 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 					cursor: getComputedStyle(button).cursor
 				}
 			}));
-			
+
 			// Check for form elements
 			const forms = document.querySelectorAll('form');
 			diagnosis.elements.forms = Array.from(forms).map(form => ({
@@ -219,7 +218,7 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 				className: form.className,
 				elements: form.elements.length
 			}));
-			
+
 			// Check for JavaScript errors
 			const originalError = window.onerror;
 			const errors = [];
@@ -227,11 +226,11 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 				errors.push({ msg, url, line, col, error: error?.toString() });
 				if (originalError) originalError.apply(this, arguments);
 			};
-			
+
 			// Look for React/Vue roots
 			const reactRoots = document.querySelectorAll('[data-reactroot], [data-react-root]');
 			diagnosis.elements.reactRoots = reactRoots.length;
-			
+
 			// Check for validation messages
 			const validationMessages = document.querySelectorAll('[role="alert"], .error, .validation-error, .invalid-feedback');
 			diagnosis.validation.messages = Array.from(validationMessages).map(msg => ({
@@ -239,7 +238,7 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 				className: msg.className,
 				visible: getComputedStyle(msg).display !== 'none'
 			}));
-			
+
 			// Check console errors
 			const consoleErrors = [];
 			const originalConsoleError = console.error;
@@ -247,11 +246,11 @@ async def diagnose_chat_issues(params: DiagnoseChatModel, browser_session: Brows
 				consoleErrors.push(args.join(' '));
 				originalConsoleError.apply(console, arguments);
 			};
-			
+
 			diagnosis.validation.consoleErrors = consoleErrors;
-			
+
 			return JSON.stringify(diagnosis, null, 2);
-			
+
 		} catch (error) {
 			diagnosis.errors.push({
 				type: 'diagnostic_error',
@@ -296,7 +295,8 @@ async def main(task: str):
 			generate_gif=f'agent_history_{dt_now}_{hash_str}.gif',
 			controller=controller,  # Use our custom controller with the enable buttons action
 		)
-		await agent.run()
+		res = await agent.run()
+		return res
 	except Exception as e:
 		raise e
 
@@ -304,4 +304,7 @@ async def main(task: str):
 if __name__ == '__main__':
 	from example_tasks import task_cases
 
-	asyncio.run(main(task_cases['task_2']))
+	agent_history_list, agent_usage_list = asyncio.run(main(task_cases['task_2']))
+	for i, hist in enumerate(agent_history_list[1]):
+		with open(f'agent_history_{i}.json', 'w') as f:
+			f.write(str(hist))
