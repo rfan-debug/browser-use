@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -307,8 +308,12 @@ if __name__ == '__main__':
 	from example_tasks import task_cases
 
 	agent_history_list, agent_usage_list = asyncio.run(main(task_cases['task_2']))
+	dt_now = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+	agent_history_path = f'agent_history_{dt_now}'
+	os.makedirs(agent_history_path, exist_ok=True)
+
 	for i, hist in enumerate(agent_history_list[1]):
-		with open(f'agent_history_{i}.json', 'w') as f:
+		with open(f'{agent_history_path}/history_{i}.json', 'w') as f:
 			json.dump(hist.model_dump(), f, indent=4)
 
-	print('Final result: ', agent_history_list[1][-1].results[0].success)
+	print('Final result: ', agent_history_list[1][-1].result[0].success)
