@@ -4043,14 +4043,30 @@ class BrowserSession(BaseModel):
 			for char in text:
 				await page.keyboard.type(char, delay=10)
 
-			# Trigger final events
+			# Trigger final events to enable submit buttons
 			await element_handle.evaluate("""
 				el => {
 					const editableEl = el.hasAttribute('contenteditable') ? el : el.querySelector('[contenteditable="true"]');
 					if (editableEl) {
+						// Trigger input and change events
 						editableEl.dispatchEvent(new Event('input', { bubbles: true }));
 						editableEl.dispatchEvent(new Event('change', { bubbles: true }));
-						editableEl.dispatchEvent(new Event('blur', { bubbles: true }));
+						
+						// Trigger keyboard events that chat interfaces listen for
+						editableEl.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+						
+						// For React/Vue apps with Slate.js, trigger synthetic events
+						if (editableEl._reactInternalFiber || editableEl._reactInternalInstance || editableEl.__reactInternalInstance) {
+							const event = new Event('input', { bubbles: true });
+							event.simulated = true;
+							editableEl.dispatchEvent(event);
+						}
+						
+						// Keep focus on the element to ensure submit buttons stay enabled
+						editableEl.focus();
+						
+						// Don't blur immediately - let the UI detect the focus state
+						// editableEl.dispatchEvent(new Event('blur', { bubbles: true }));
 					}
 				}
 			""")
@@ -4105,13 +4121,62 @@ class BrowserSession(BaseModel):
 				self.logger.debug(f'Slate.js detection failed: {e}')
 				pass
 
-			# let's first try to click and type
+			# let's first try to click and type with proper focus management
 			try:
-				await element_handle.evaluate('el => {el.textContent = ""; el.value = "";}')
+				# Enhanced clearing and focus management for chat interfaces
+				await element_handle.evaluate("""
+					el => {
+						// Clear content
+						el.textContent = "";
+						el.value = "";
+						
+						// Ensure proper focus and trigger events that UI frameworks expect
+						el.focus();
+						
+						// Trigger focus events that chat interfaces often listen for
+						el.dispatchEvent(new Event('focus', { bubbles: true }));
+						el.dispatchEvent(new Event('focusin', { bubbles: true }));
+						
+						// For contenteditable elements, set cursor position
+						if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
+							const range = document.createRange();
+							const selection = window.getSelection();
+							range.setStart(el, 0);
+							range.collapse(true);
+							selection.removeAllRanges();
+							selection.addRange(range);
+						}
+					}
+				""")
+
 				await element_handle.click()
 				await asyncio.sleep(0.1)  # Increased sleep time
 				page = await self.get_current_page()
 				await page.keyboard.type(text)
+
+				# After typing, trigger events that enable submit buttons
+				await element_handle.evaluate("""
+					el => {
+						// Trigger input and change events
+						el.dispatchEvent(new Event('input', { bubbles: true }));
+						el.dispatchEvent(new Event('change', { bubbles: true }));
+						
+						// Trigger keyboard events that some frameworks listen for
+						el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+						
+						// For React/Vue apps, trigger synthetic events
+						if (el._reactInternalFiber || el._reactInternalInstance || el.__reactInternalInstance) {
+							// React-specific event triggering
+							const event = new Event('input', { bubbles: true });
+							event.simulated = true;
+							el.dispatchEvent(event);
+						}
+						
+						// Keep focus to ensure button stays enabled
+						el.focus();
+					}
+				""")
+
 				return
 			except Exception as e:
 				self.logger.debug(f'Input text with click and type failed, trying element handle method: {e}')
@@ -4129,10 +4194,33 @@ class BrowserSession(BaseModel):
 
 			try:
 				if (await is_contenteditable.json_value() or tag_name == 'input') and not (readonly or disabled):
-					await element_handle.evaluate('el => {el.textContent = ""; el.value = "";}')
+					await element_handle.evaluate('el => {el.textContent = ""; el.value = ""; el.focus();}')
 					await element_handle.type(text, delay=5)
 				else:
 					await element_handle.fill(text)
+
+				# After any input method, trigger events to enable submit buttons
+				await element_handle.evaluate("""
+					el => {
+						// Trigger input and change events
+						el.dispatchEvent(new Event('input', { bubbles: true }));
+						el.dispatchEvent(new Event('change', { bubbles: true }));
+						
+						// Trigger keyboard events
+						el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+						
+						// For React/Vue apps, trigger synthetic events
+						if (el._reactInternalFiber || el._reactInternalInstance || el.__reactInternalInstance) {
+							const event = new Event('input', { bubbles: true });
+							event.simulated = true;
+							el.dispatchEvent(event);
+						}
+						
+						// Maintain focus to keep submit buttons enabled
+						el.focus();
+					}
+				""")
+
 			except Exception as e:
 				self.logger.error(f'Error during input text into element: {type(e).__name__}: {e}')
 				raise BrowserError(f'Failed to input text into element: {repr(element_node)}')
