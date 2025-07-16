@@ -7,11 +7,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from browser_use.agent.views import ActionResult
 from browser_use.browser import BrowserProfile
 from browser_use.llm.azure.chat import ChatAzureOpenAI
 
 load_dotenv()
-from browser_use import Agent, Controller
+from browser_use import Agent, BrowserSession, Controller
 
 PROFILE_DIR = Path.home() / '.cache' / 'my_playwright_profile'
 PROFILE_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,74 +36,74 @@ class DiagnoseChatModel(BaseModel):
 	pass  # No parameters needed
 
 
-# # Register custom action to enable disabled buttons safely
-# @controller.registry.action('Enable disabled buttons on the page to make them interactive', param_model=EnableButtonModel)
-# async def enable_disabled_buttons(params: EnableButtonModel, browser_session: BrowserSession):
-# 	"""Enable disabled buttons with minimal interference to the application workflow"""
-# 	if params.selector:
-# 		script = f"""
-# 			const button = document.querySelector('{params.selector}');
-# 			if (button) {{
-# 				// Store original state for debugging
-# 				const originalState = {{
-# 					disabled: button.disabled,
-# 					ariaDisabled: button.getAttribute('aria-disabled'),
-# 					pointerEvents: button.style.pointerEvents,
-# 					opacity: button.style.opacity
-# 				}};
-# 				console.log('Original button state:', originalState);
-#
-# 				// Minimal changes to avoid breaking React state
-# 				button.removeAttribute('disabled');
-# 				button.disabled = false;
-# 				button.removeAttribute('aria-disabled');
-#
-# 				// Only modify style if it's explicitly blocking interaction
-# 				if (button.style.pointerEvents === 'none') {{
-# 					button.style.pointerEvents = 'auto';
-# 				}}
-#
-# 				console.log('Button enabled successfully');
-# 				return 'enabled';
-# 			}} else {{
-# 				console.log('Button not found with selector: {params.selector}');
-# 				return 'not_found';
-# 			}}
-# 		"""
-# 	else:
-# 		script = """
-# 			let enabledCount = 0;
-# 			document.querySelectorAll('button[disabled], input[disabled], button[aria-disabled="true"], input[aria-disabled="true"]').forEach(element => {
-# 				// Store original state for debugging
-# 				const originalState = {
-# 					disabled: element.disabled,
-# 					ariaDisabled: element.getAttribute('aria-disabled'),
-# 					pointerEvents: element.style.pointerEvents,
-# 					opacity: element.style.opacity
-# 				};
-# 				console.log('Original element state:', originalState);
-#
-# 				// Minimal changes to avoid breaking React state
-# 				element.removeAttribute('disabled');
-# 				element.disabled = false;
-# 				element.removeAttribute('aria-disabled');
-#
-# 				// Only modify style if it's explicitly blocking interaction
-# 				if (element.style.pointerEvents === 'none') {
-# 					element.style.pointerEvents = 'auto';
-# 				}
-#
-# 				enabledCount++;
-# 			});
-#
-# 			console.log(`Enabled ${enabledCount} buttons`);
-# 			return `enabled_${enabledCount}`;
-# 		"""
-#
-# 	result = await browser_session.execute_javascript(script)
-# 	return ActionResult(extracted_content=f'Button enabling completed: {result}')
-#
-#
+# Register custom action to enable disabled buttons safely
+@controller.registry.action('Enable disabled buttons on the page to make them interactive', param_model=EnableButtonModel)
+async def enable_disabled_buttons(params: EnableButtonModel, browser_session: BrowserSession):
+	"""Enable disabled buttons with minimal interference to the application workflow"""
+	if params.selector:
+		script = f"""
+			const button = document.querySelector('{params.selector}');
+			if (button) {{
+				// Store original state for debugging
+				const originalState = {{
+					disabled: button.disabled,
+					ariaDisabled: button.getAttribute('aria-disabled'),
+					pointerEvents: button.style.pointerEvents,
+					opacity: button.style.opacity
+				}};
+				console.log('Original button state:', originalState);
+
+				// Minimal changes to avoid breaking React state
+				button.removeAttribute('disabled');
+				button.disabled = false;
+				button.removeAttribute('aria-disabled');
+
+				// Only modify style if it's explicitly blocking interaction
+				if (button.style.pointerEvents === 'none') {{
+					button.style.pointerEvents = 'auto';
+				}}
+
+				console.log('Button enabled successfully');
+				return 'enabled';
+			}} else {{
+				console.log('Button not found with selector: {params.selector}');
+				return 'not_found';
+			}}
+		"""
+	else:
+		script = """
+			let enabledCount = 0;
+			document.querySelectorAll('button[disabled], input[disabled], button[aria-disabled="true"], input[aria-disabled="true"]').forEach(element => {
+				// Store original state for debugging
+				const originalState = {
+					disabled: element.disabled,
+					ariaDisabled: element.getAttribute('aria-disabled'),
+					pointerEvents: element.style.pointerEvents,
+					opacity: element.style.opacity
+				};
+				console.log('Original element state:', originalState);
+
+				// Minimal changes to avoid breaking React state
+				element.removeAttribute('disabled');
+				element.disabled = false;
+				element.removeAttribute('aria-disabled');
+
+				// Only modify style if it's explicitly blocking interaction
+				if (element.style.pointerEvents === 'none') {
+					element.style.pointerEvents = 'auto';
+				}
+
+				enabledCount++;
+			});
+
+			console.log(`Enabled ${enabledCount} buttons`);
+			return `enabled_${enabledCount}`;
+		"""
+
+	result = await browser_session.execute_javascript(script)
+	return ActionResult(extracted_content=f'Button enabling completed: {result}')
+
+
 # # Register custom action to force click buttons that may be disabled
 # @controller.registry.action('Force click a button even if it appears disabled', param_model=ForceClickModel)
 # async def force_click_button(params: ForceClickModel, browser_session: BrowserSession):
