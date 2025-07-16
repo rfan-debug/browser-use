@@ -18,19 +18,19 @@ task_cases = {
     """,
 	###
 	'task_2': f"""
+	FOLLOW the these instructions step by step:
 	1. Go to the url: {BETA_URL}.
 	2. Click the `Start a new chat` button on the top to start a new chat.
     3. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `create a video of dancing penguins` in the left bottom "Ask anything" input box.
     4. Press the `right-arrowed` button to send it to the chat.
     5. Wait for 10 seconds.
-    6. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `proceed`, then press the `right-arrowed` button to send it to the chat.
-    7. Wait for 30 seconds until the video generation process is done.
-    8. If a video content, or even a placeholder, is generated as we expected, mark it as SUCCESS, otherwise, mark it as FAILED. 
+    6. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `proceed`,  
+    7. Click the input text box to gain focus, and then press the `right-arrowed` button to send it to the chat.
+    8. Wait for 30 seconds until the video generation process is done.
+    9. If a video content, or even a placeholder, is generated as we expected, mark it as SUCCESS, otherwise, mark it as FAILED. 
     ---
     ALWAYS REMEMBER the following: 
     1. Waiting on the loading page and never take actions there. 
    	2. NEVER touch anything on the canvas, focus on the chat message itself.
-    3. Use the diagnostic action whenever something isn't working as expected to understand why.
-    4. The exception is, if you see `'Error occurred while fetching Video Ad'`, it implies a successful generation. 
     """,
 }
