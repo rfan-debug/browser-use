@@ -46,4 +46,5 @@ async def main():
 	await browser_session.kill()
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+	asyncio.run(main())

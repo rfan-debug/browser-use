@@ -52,4 +52,9 @@ tmp
 credentials.json
 token.json
 
+# Local dev work
+**/.claude/*
+playground/*
+
+
 !docs/docs.json

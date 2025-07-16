@@ -40,10 +40,10 @@ def create_history_gif(
 	show_goals: bool = True,
 	show_task: bool = True,
 	show_logo: bool = False,
-	font_size: int = 40,
-	title_font_size: int = 56,
-	goal_font_size: int = 44,
-	margin: int = 40,
+	font_size: int = 15,
+	title_font_size: int = 30,
+	goal_font_size: int = 15,
+	margin: int = 15,
 	line_spacing: float = 1.5,
 ) -> None:
 	"""Create a GIF from the agent's history with overlaid task and goal text."""
@@ -113,16 +113,16 @@ def create_history_gif(
 			logger.warning(f'Could not load logo: {e}')
 
 	# Create task frame if requested
-	if show_task and task:
-		task_frame = _create_task_frame(
-			task,
-			history.history[0].state.screenshot,
-			title_font,  # type: ignore
-			regular_font,  # type: ignore
-			logo,
-			line_spacing,
-		)
-		images.append(task_frame)
+	# if show_task and task:
+	# 	task_frame = _create_task_frame(
+	# 		task,
+	# 		history.history[0].state.screenshot,
+	# 		title_font,  # type: ignore
+	# 		regular_font,  # type: ignore
+	# 		logo,
+	# 		line_spacing,
+	# 	)
+	# 	images.append(task_frame)
 
 	# Process each history item
 	for i, item in enumerate(history.history, 1):
@@ -143,15 +143,19 @@ def create_history_gif(
 				margin=margin,
 				logo=logo,
 			)
+		if i > 1:
+			images.append(image)
 
-		images.append(image)
-
+	output_images = []
 	if images:
+		for each in images:
+			if each.size[0] >= 100:
+				output_images.append(each)
 		# Save the GIF
-		images[0].save(
+		output_images[0].save(
 			output_path,
 			save_all=True,
-			append_images=images[1:],
+			append_images=output_images[1:],
 			duration=duration,
 			loop=0,
 			optimize=False,

@@ -12,10 +12,7 @@ load_dotenv()
 
 from browser_use import Agent
 from browser_use.browser import BrowserProfile, BrowserSession
-from browser_use.llm import ChatOpenAI
-
-if not os.getenv('OPENAI_API_KEY'):
-	raise ValueError('OPENAI_API_KEY is not set')
+from browser_use.llm import ChatAzureOpenAI
 
 """
 Example: Enhanced 'Scroll' action with page amounts and element-specific scrolling.
@@ -40,7 +37,7 @@ This script demonstrates the new enhanced scrolling capabilities:
    - Container-aware scrolling prevents unwanted side effects
 """
 
-llm = ChatOpenAI(model='gpt-4.1')
+llm = ChatAzureOpenAI(model='gpt-4.1')
 
 browser_profile = BrowserProfile(headless=False)
 browser_session = BrowserSession(browser_profile=browser_profile)
