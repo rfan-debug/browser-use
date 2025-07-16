@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from browser_use.browser import BrowserProfile
 from browser_use.llm.azure.chat import ChatAzureOpenAI
+from examples.typeface.example_tasks import task_cases
 
 load_dotenv()
 from browser_use import ActionResult, Agent, BrowserSession, Controller
@@ -301,26 +302,6 @@ async def main(task: str):
 
 
 if __name__ == '__main__':
-	LOCAL_TEXT = 'http://localhost:3000/canvas/625275?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6&chatId=fea74f70-d0c7-4b8c-b1d2-8206ad168033'
-	PREVIEW_TEXT = 'https://kind-pond-08f7fc10f-preview.eastus2.3.azurestaticapps.net/canvas/661623?accountId=692cafa4-6947-4d4f-b0c5-dfbdd6ab73f6'
-	BETA_TEXT = 'https://beta.typeface.ai/canvas/674657?accountId=5802277a-d2a5-4f21-b927-d577577c3a17'
-	BETA_TEXT2 = 'https://beta.typeface.ai'
+	from example_tasks import task_cases
 
-	task_1 = f"""
-	1. Go to the url: {BETA_TEXT}.
-	2. Click the `Start a new chat` button on the top to start a new chat.
-    3. Click the "Ask anything" input box to gain the editing access of this box and immediately type in `create a sizzle video` in the left bottom "Ask anything" input box.
-    4. Press the `right-arrowed` button to send it to the chat.
-    5. Wait until the agent's "Thinking" process is done. 
-    6. Once the chat bot returns the message, click the "Ask anything" input box to gain the editing access of this box and immediately type in `proceed` in the textbox. 
-    7. Press the `right-arrowed` button to send it to the chat.
-    8. Wait in the chat window until the content is generated.
-    9. If a content is generated, mark it as SUCCESS, otherwise, mark it as FAILED.
-    ---
-    ALWAYS REMEMBER the following: 
-    1. Waiting on the loading page and never take actions there. 
-   	2. NEVER touch anything on the canvas, focus on the chat message itself.
-    3. Use the diagnostic action whenever something isn't working as expected to understand why.
-    """
-
-	asyncio.run(main(task_1))
+	asyncio.run(main(task_cases['task_2']))
